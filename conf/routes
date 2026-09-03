@@ -1,24 +1,31 @@
 # Routes
-# This file defines all application routes (Higher priority routes first)
-# https://www.playframework.com/documentation/latest/ScalaRouting
-# ~~~~
-# Format: HTTP_METHOD    URL_PATTERN    CONTROLLER.ACTION
+# Tech Products Store API
 
-# An example controller showing a sample home page
-GET     /                           controllers.HomeController.index()
-#
-# # Map static resources from the /public folder to the /assets URL path
-GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
+# Home
+# GET     /                                       controllers.HomeController.index()
+GET     /                  controllers.Assets.versioned(path="/public", file="index.html")
+GET     /assets/*file      controllers.Assets.versioned(path="/public", file)
 
-# User endpoints
-GET     /api/v1/users               controllers.UserController.list(page: Int ?= 1, size: Int ?= 20)
-GET     /api/v1/users/:id           controllers.UserController.get(id: Long)
-POST    /api/v1/users               controllers.UserController.create()
-PUT     /api/v1/users/:id           controllers.UserController.update(id: Long)
-DELETE  /api/v1/users/:id           controllers.UserController.delete(id: Long)
+# Health
+GET     /health                                 controllers.HealthController.check()
 
-# Search with query parameters
-GET     /api/v1/users/search        controllers.UserController.search(q: String, limit: Int ?= 10)
+# Categorias
+GET     /api/v1/categorias                       controllers.CategoriaController.list()
+GET     /api/v1/categorias/:id                   controllers.CategoriaController.get(id: Long)
 
-# Health check endpoint
-GET     /health                     controllers.HealthController.check()
+# Productos
+GET     /api/v1/productos                        controllers.ProductoController.list(categoria: Long ?= 0, precioMin: Double ?= 0.0, precioMax: Double ?= 0.0, bajoStock: Boolean ?= false, disponible: Boolean ?= false, ordenar: String ?= "id")
+GET     /api/v1/productos/:id                    controllers.ProductoController.get(id: Long)
+POST    /api/v1/productos                        controllers.ProductoController.create()
+PUT     /api/v1/productos/:id                    controllers.ProductoController.update(id: Long)
+DELETE  /api/v1/productos/:id                    controllers.ProductoController.delete(id: Long)
+GET     /api/v1/productos/categoria/:id          controllers.ProductoController.byCategoria(id: Long)
+
+# Ventas
+GET     /api/v1/ventas                           controllers.VentaController.list()
+GET     /api/v1/ventas/:id                       controllers.VentaController.get(id: Long)
+POST    /api/v1/ventas                           controllers.VentaController.create()
+GET     /api/v1/ventas/productos-mas-vendidos    controllers.VentaController.bestSellers()
+
+# Static assets
+# GET     /assets/*file                           controllers.Assets.versioned(path="/public", file: Asset)

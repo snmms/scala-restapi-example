@@ -7,9 +7,11 @@ import repositories._
 
 class ServiceModule extends AbstractModule {
   override def configure(): Unit = {
-    bind(classOf[UserService]).to(classOf[UserServiceImpl])
-    bind(classOf[UserRepository]).to(classOf[UserRepositoryImpl])
-    bind(classOf[PasswordService]).to(classOf[BCryptPasswordService])
-    bind(classOf[AuthService]).to(classOf[AuthServiceImpl])
+    bind(classOf[CategoriaService]).to(classOf[CategoriaServiceImpl])
+    bind(classOf[ProductoService]).to(classOf[ProductoServiceImpl])
+    bind(classOf[VentaService]).to(classOf[VentaServiceImpl])
+    bind(classOf[CategoriaRepository]).to(classOf[CategoriaRepositoryImpl])
+    bind(classOf[ProductoRepository]).to(classOf[ProductoRepositoryImpl])
+    bind(classOf[VentaRepository]).to(classOf[VentaRepositoryImpl])
   }
 }
