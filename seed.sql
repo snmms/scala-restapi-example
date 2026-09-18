@@ -1,17 +1,11 @@
 PRAGMA foreign_keys = ON;
 
--- =========================================
--- TABLA: CATEGORIAS
--- =========================================
 CREATE TABLE categorias (
     id_categoria INTEGER PRIMARY KEY AUTOINCREMENT,
     nombre TEXT NOT NULL UNIQUE,
     descripcion TEXT
 );
 
--- =========================================
--- TABLA: PRODUCTOS
--- =========================================
 CREATE TABLE productos (
     id_producto INTEGER PRIMARY KEY AUTOINCREMENT,
     nombre TEXT NOT NULL,
@@ -25,18 +19,12 @@ CREATE TABLE productos (
         REFERENCES categorias(id_categoria)
 );
 
--- =========================================
--- TABLA: VENTAS
--- =========================================
 CREATE TABLE ventas (
     id_venta INTEGER PRIMARY KEY AUTOINCREMENT,
     fecha TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     total REAL NOT NULL DEFAULT 0 CHECK (total >= 0)
 );
 
--- =========================================
--- TABLA: DETALLE DE VENTAS
--- =========================================
 CREATE TABLE detalle_ventas (
     id_detalle INTEGER PRIMARY KEY AUTOINCREMENT,
     id_venta INTEGER NOT NULL,
@@ -51,9 +39,6 @@ CREATE TABLE detalle_ventas (
         REFERENCES productos(id_producto)
 );
 
--- =========================================
--- DATOS DE CATEGORIAS
--- =========================================
 
 INSERT INTO categorias (nombre, descripcion) VALUES
 ('Laptops', 'Computadoras portátiles'),
@@ -62,10 +47,6 @@ INSERT INTO categorias (nombre, descripcion) VALUES
 ('Periféricos', 'Teclados, mouse y accesorios'),
 ('Componentes', 'Componentes para PC'),
 ('Audio', 'Audífonos, parlantes y accesorios de audio');
-
--- =========================================
--- DATOS DE PRODUCTOS
--- =========================================
 
 INSERT INTO productos
 (nombre, descripcion, precio, stock, stock_minimo, id_categoria)

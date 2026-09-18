@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Venta</title>
+    <link rel="icon" href="" />
+    <link rel="stylesheet" href="/assets/stylesheets/main.css" />
+  </head>
+  <body>
+    <select id="id_producto">
+      <option value="">Cargando productos...</option>
+    </select>
+    <input type="number" id="cantidad" placeholder="Cantidad" />
+    <button id="add" disabled>Agregar item</button>
+
+    <ul id="items"></ul>
+
+    <button id="send">Crear venta</button>
+
+    <p id="data"></p>
+
+    <script>
+      const items = [];
+
+      const itemsEl = document.getElementById("items");
+      const dataEl = document.getElementById("data");
+      const selectEl = document.getElementById("id_producto");
+      const addBtn = document.getElementById("add");
+      const cantidadEl = document.getElementById("cantidad");
+      const productosById = new Map();
+
+      async function cargarProductos() {
+        try {
+          selectEl.disabled = true;
+          addBtn.disabled = true;
+          const response = await fetch("/api/v1/productos");
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const productos = await response.json();
+          const disponibles = productos.filter((p) => p.stock > 0);
+
+          productosById.clear();
+          selectEl.innerHTML = "";
+
+          if (disponibles.length === 0) {
+            const opt = document.createElement("option");
+            opt.value = "";
+            opt.textContent = "No hay productos con stock";
+            opt.disabled = true;
+            opt.selected = true;
+            selectEl.appendChild(opt);
+            selectEl.disabled = true;
+            addBtn.disabled = true;
+            dataEl.style.color = "red";
+            dataEl.textContent = "No hay productos disponibles para la venta";
+            return;
+          }
+
+          disponibles.sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+          const placeholder = document.createElement("option");
+          placeholder.value = "";
+          placeholder.textContent = "Seleccione producto";
+          placeholder.disabled = true;
+          placeholder.selected = true;
+          selectEl.appendChild(placeholder);
+
+          disponibles.forEach((p) => {
+            const opt = document.createElement("option");
+            opt.value = String(p.id_producto);
+            opt.textContent = `${p.nombre} - S/. ${p.precio} (stock: ${p.stock})`;
+            selectEl.appendChild(opt);
+            productosById.set(p.id_producto, p);
+            productosById.set(String(p.id_producto), p);
+          });
+
+          selectEl.disabled = false;
+          addBtn.disabled = false;
+        } catch (error) {
+          selectEl.innerHTML = '<option value="">Error cargando productos</option>';
+          selectEl.disabled = true;
+          addBtn.disabled = true;
+          dataEl.style.color = "red";
+          dataEl.textContent = `Error cargando productos: ${error.message}`;
+        }
+      }
+
+      function renderItems() {
+        itemsEl.innerHTML = items
+          .map((x, i) => {
+            const prod = productosById.get(x.id_producto) || productosById.get(String(x.id_producto));
+            const label = prod ? `${prod.nombre} - S/. ${prod.precio} (stock: ${prod.stock})` : `ID: ${x.id_producto}`;
+            return `
+        <li>
+          ${label} - Cantidad: ${x.cantidad}
+          <button data-index="${i}" class="remove">Quitar</button>
+        </li>
+      `;
+          })
+          .join("");
+
+        itemsEl.querySelectorAll(".remove").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            items.splice(Number(btn.dataset.index), 1);
+            renderItems();
+          });
+        });
+      }
+
+      document.getElementById("add").addEventListener("click", () => {
+        const id_producto = Number(selectEl.value);
+        const cantidad = Number(cantidadEl.value);
+
+        if (!id_producto || id_producto <= 0) {
+          dataEl.style.color = "red";
+          dataEl.textContent = "Error: seleccione un producto";
+          return;
+        }
+        if (!cantidad || cantidad <= 0) {
+          dataEl.style.color = "red";
+          dataEl.textContent = "Error: cantidad debe ser un número > 0";
+          return;
+        }
+
+        items.push({ id_producto, cantidad });
+        selectEl.selectedIndex = 0;
+        cantidadEl.value = "";
+        dataEl.textContent = "";
+        renderItems();
+      });
+
+      document.getElementById("send").addEventListener("click", async () => {
+        if (items.length === 0) {
+          dataEl.style.color = "red";
+          dataEl.textContent = "Error: agregue al menos un item a la venta";
+          return;
+        }
+
+        try {
+          console.log(items);
+          const response = await fetch("/api/v1/ventas", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ items }),
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            dataEl.style.color = "red";
+            dataEl.textContent = `Error ${response.status}: ${data.error || JSON.stringify(data)}`;
+            return;
+          }
+
+          dataEl.style.color = "green";
+          dataEl.textContent = `Venta creada: ID ${data.id_venta} - Total: S/. ${data.total}`;
+
+          items.length = 0;
+          renderItems();
+          await cargarProductos();
+        } catch (error) {
+          dataEl.style.color = "red";
+          dataEl.textContent = `Error de red: ${error.message}`;
+        }
+      });
+
+      cargarProductos();
+      renderItems();
+    </script>
+  </body>
+</html>

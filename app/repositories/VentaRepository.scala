@@ -33,29 +33,39 @@ class VentaRepositoryImpl @Inject()(
 
   override def findAll(): Future[Seq[Venta]] = Future {
     val conn = dbManager.getConnection
-    val stmt = conn.prepareStatement("SELECT * FROM ventas ORDER BY fecha DESC")
-    val rs = stmt.executeQuery()
-    Iterator.continually(rs).takeWhile(_.next()).map(rsToVenta).toSeq
+    conn.synchronized {
+      val stmt = conn.prepareStatement("SELECT * FROM ventas ORDER BY fecha DESC")
+      val rs = stmt.executeQuery()
+      try { Iterator.continually(rs).takeWhile(_.next()).map(rsToVenta).toSeq }
+      finally { try { rs.close() } catch { case _: Exception => }; try { stmt.close() } catch { case _: Exception => } }
+    }
   }
 
   override def findById(id: Long): Future[Option[(Venta, Seq[DetalleVenta])]] = Future {
     val conn = dbManager.getConnection
-    val stmt = conn.prepareStatement("SELECT * FROM ventas WHERE id_venta = ?")
-    stmt.setLong(1, id)
-    val rs = stmt.executeQuery()
-    if (rs.next()) {
-      val venta = rsToVenta(rs)
-      val detStmt = conn.prepareStatement("SELECT * FROM detalle_ventas WHERE id_venta = ?")
-      detStmt.setLong(1, id)
-      val detRs = detStmt.executeQuery()
-      val detalles = Iterator.continually(detRs).takeWhile(_.next()).map(rsToDetalle).toSeq
-      Some((venta, detalles))
-    } else None
+    conn.synchronized {
+      val stmt = conn.prepareStatement("SELECT * FROM ventas WHERE id_venta = ?")
+      stmt.setLong(1, id)
+      val rs = stmt.executeQuery()
+      try {
+        if (rs.next()) {
+          val venta = rsToVenta(rs)
+          val detStmt = conn.prepareStatement("SELECT * FROM detalle_ventas WHERE id_venta = ?")
+          detStmt.setLong(1, id)
+          val detRs = detStmt.executeQuery()
+          try {
+            val detalles = Iterator.continually(detRs).takeWhile(_.next()).map(rsToDetalle).toSeq
+            Some((venta, detalles))
+          } finally { try { detRs.close() } catch { case _: Exception => }; try { detStmt.close() } catch { case _: Exception => } }
+        } else None
+      } finally { try { rs.close() } catch { case _: Exception => }; try { stmt.close() } catch { case _: Exception => } }
+    }
   }
 
   override def create(items: Seq[(Long, Int)]): Future[Venta] = Future {
     val conn = dbManager.getConnection
-    conn.setAutoCommit(false)
+    conn.synchronized {
+      conn.setAutoCommit(false)
     try {
       var total = 0.0
       val detalles = items.map { case (idProducto, cantidad) =>
@@ -109,31 +119,36 @@ class VentaRepositoryImpl @Inject()(
     } finally {
       conn.setAutoCommit(true)
     }
+    }
   }
 
   override def findBestSellers(limit: Int): Future[Seq[(Producto, Int)]] = Future {
     val conn = dbManager.getConnection
-    val stmt = conn.prepareStatement(
-      """SELECT p.*, SUM(dv.cantidad) as total_vendido
-         FROM productos p
-         JOIN detalle_ventas dv ON p.id_producto = dv.id_producto
-         GROUP BY p.id_producto
-         ORDER BY total_vendido DESC
-         LIMIT ?"""
-    )
-    stmt.setInt(1, limit)
-    val rs = stmt.executeQuery()
-    Iterator.continually(rs).takeWhile(_.next()).map { rs =>
-      val producto = Producto(
-        rs.getLong("id_producto"),
-        rs.getString("nombre"),
-        Option(rs.getString("descripcion")),
-        rs.getDouble("precio"),
-        rs.getInt("stock"),
-        rs.getInt("stock_minimo"),
-        rs.getLong("id_categoria")
+    conn.synchronized {
+      val stmt = conn.prepareStatement(
+        """SELECT p.*, SUM(dv.cantidad) as total_vendido
+           FROM productos p
+           JOIN detalle_ventas dv ON p.id_producto = dv.id_producto
+           GROUP BY p.id_producto
+           ORDER BY total_vendido DESC
+           LIMIT ?"""
       )
-      (producto, rs.getInt("total_vendido"))
-    }.toSeq
+      stmt.setInt(1, limit)
+      val rs = stmt.executeQuery()
+      try {
+        Iterator.continually(rs).takeWhile(_.next()).map { rs =>
+          val producto = Producto(
+            rs.getLong("id_producto"),
+            rs.getString("nombre"),
+            Option(rs.getString("descripcion")),
+            rs.getDouble("precio"),
+            rs.getInt("stock"),
+            rs.getInt("stock_minimo"),
+            rs.getLong("id_categoria")
+          )
+          (producto, rs.getInt("total_vendido"))
+        }.toSeq
+      } finally { try { rs.close() } catch { case _: Exception => }; try { stmt.close() } catch { case _: Exception => } }
+    }
   }
 }

@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Editar producto</title>
+    <link rel="icon" href="" />
+    <link rel="stylesheet" href="/assets/stylesheets/main.css" />
+  </head>
+  <body>
+    <h2>Editar producto</h2>
+
+    <label for="productoSelect">Producto:</label>
+    <select id="productoSelect">
+      <option value="">Cargando productos...</option>
+    </select>
+    <button id="btnCargar">Cargar</button>
+
+    <div id="form" hidden>
+      <input type="text" id="nombre" placeholder="Nombre" />
+      <input type="text" id="descripcion" placeholder="Descripción" />
+      <input type="number" id="precio" placeholder="Precio" step="0.01" />
+      <input type="number" id="stock" placeholder="Stock" />
+      <input type="number" id="stock_minimo" placeholder="Stock mínimo" />
+      <input type="number" id="id_categoria" placeholder="ID categoría" />
+      <button id="btnActualizar">Actualizar</button>
+    </div>
+
+    <p id="data"></p>
+
+    <script>
+      const selectEl = document.getElementById("productoSelect");
+      const btnCargar = document.getElementById("btnCargar");
+      const btnActualizar = document.getElementById("btnActualizar");
+      const formEl = document.getElementById("form");
+      const dataEl = document.getElementById("data");
+
+      const nombreEl = document.getElementById("nombre");
+      const descripcionEl = document.getElementById("descripcion");
+      const precioEl = document.getElementById("precio");
+      const stockEl = document.getElementById("stock");
+      const stockMinimoEl = document.getElementById("stock_minimo");
+      const idCategoriaEl = document.getElementById("id_categoria");
+
+      let currentId = null;
+
+      async function cargarLista() {
+        try {
+          selectEl.disabled = true;
+          btnCargar.disabled = true;
+          const res = await fetch("/api/v1/productos");
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const productos = await res.json();
+          selectEl.innerHTML = "";
+          if (productos.length === 0) {
+            const opt = document.createElement("option");
+            opt.value = "";
+            opt.textContent = "No hay productos";
+            opt.disabled = true;
+            opt.selected = true;
+            selectEl.appendChild(opt);
+            selectEl.disabled = true;
+            dataEl.style.color = "red";
+            dataEl.textContent = "No hay productos para editar";
+            return;
+          }
+          productos.sort((a, b) => a.nombre.localeCompare(b.nombre));
+          const placeholder = document.createElement("option");
+          placeholder.value = "";
+          placeholder.textContent = "Seleccione producto";
+          placeholder.disabled = true;
+          placeholder.selected = true;
+          selectEl.appendChild(placeholder);
+          productos.forEach((p) => {
+            const opt = document.createElement("option");
+            opt.value = String(p.id_producto);
+            opt.textContent = `${p.nombre} - S/. ${p.precio} (stock: ${p.stock})`;
+            selectEl.appendChild(opt);
+          });
+          selectEl.disabled = false;
+          btnCargar.disabled = false;
+
+          const params = new URLSearchParams(location.search);
+          const idParam = params.get("id");
+          if (idParam) {
+            selectEl.value = String(idParam);
+            if (selectEl.value) cargarProducto(Number(idParam));
+          }
+        } catch (e) {
+          selectEl.innerHTML = '<option value="">Error cargando productos</option>';
+          dataEl.style.color = "red";
+          dataEl.textContent = `Error cargando productos: ${e.message}`;
+        }
+      }
+
+      async function cargarProducto(id) {
+        try {
+          dataEl.textContent = "";
+          const res = await fetch(`/api/v1/productos/${id}`);
+          const data = await res.json();
+          if (!res.ok) {
+            dataEl.style.color = "red";
+            dataEl.textContent = `Error ${res.status}: ${data.error || JSON.stringify(data)}`;
+            formEl.hidden = true;
+            return;
+          }
+          currentId = id;
+          nombreEl.value = data.nombre || "";
+          descripcionEl.value = data.descripcion || "";
+          precioEl.value = data.precio ?? "";
+          stockEl.value = data.stock ?? "";
+          stockMinimoEl.value = data.stock_minimo ?? "";
+          idCategoriaEl.value = data.id_categoria ?? "";
+          formEl.hidden = false;
+          dataEl.style.color = "";
+          dataEl.textContent = "";
+        } catch (e) {
+          dataEl.style.color = "red";
+          dataEl.textContent = `Error de red: ${e.message}`;
+        }
+      }
+
+      btnCargar.addEventListener("click", () => {
+        const id = Number(selectEl.value);
+        if (!id) {
+          dataEl.style.color = "red";
+          dataEl.textContent = "Seleccione un producto";
+          return;
+        }
+        cargarProducto(id);
+      });
+
+      selectEl.addEventListener("change", () => {
+        if (selectEl.value) cargarProducto(Number(selectEl.value));
+      });
+
+      btnActualizar.addEventListener("click", async () => {
+        if (!currentId) {
+          dataEl.style.color = "red";
+          dataEl.textContent = "Cargue un producto primero";
+          return;
+        }
+        const nombre = nombreEl.value.trim();
+        const descripcionRaw = descripcionEl.value.trim();
+        const precio = precioEl.value;
+        const stock = stockEl.value;
+        const stock_minimo = stockMinimoEl.value;
+        const id_categoria = idCategoriaEl.value;
+
+        if (!nombre) {
+          dataEl.style.color = "red";
+          dataEl.textContent = "Error: nombre es obligatorio";
+          return;
+        }
+        if (precio === "" || isNaN(Number(precio)) || Number(precio) < 0) {
+          dataEl.style.color = "red";
+          dataEl.textContent = "Error: precio debe ser un número >= 0";
+          return;
+        }
+        if (stock === "" || isNaN(Number(stock)) || Number(stock) < 0) {
+          dataEl.style.color = "red";
+          dataEl.textContent = "Error: stock debe ser un número >= 0";
+          return;
+        }
+        if (!id_categoria || isNaN(Number(id_categoria))) {
+          dataEl.style.color = "red";
+          dataEl.textContent = "Error: id_categoria es obligatorio";
+          return;
+        }
+        if (stock_minimo !== "" && (isNaN(Number(stock_minimo)) || Number(stock_minimo) < 0)) {
+          dataEl.style.color = "red";
+          dataEl.textContent = "Error: stock_minimo debe ser >= 0";
+          return;
+        }
+
+        const payload = {
+          nombre,
+          descripcion: descripcionRaw || null,
+          precio: Number(precio),
+          stock: Number(stock),
+          stock_minimo: stock_minimo === "" ? null : Number(stock_minimo),
+          id_categoria: Number(id_categoria),
+        };
+
+        try {
+          const res = await fetch(`/api/v1/productos/${currentId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            dataEl.style.color = "red";
+            dataEl.textContent = `Error ${res.status}: ${data.error || JSON.stringify(data)}`;
+            return;
+          }
+          dataEl.style.color = "green";
+          dataEl.textContent = `Producto actualizado: ${data.nombre} (ID: ${data.id_producto})`;
+          await cargarLista();
+          selectEl.value = String(data.id_producto);
+        } catch (e) {
+          dataEl.style.color = "red";
+          dataEl.textContent = `Error de red: ${e.message}`;
+        }
+      });
+
+      cargarLista();
+    </script>
+  </body>
+</html>

@@ -13,6 +13,8 @@ class DatabaseManager @Inject()() {
   Class.forName("org.sqlite.JDBC")
   private val connection = DriverManager.getConnection(url)
   connection.createStatement().execute("PRAGMA foreign_keys = ON")
+  connection.createStatement().execute("PRAGMA busy_timeout = 5000")
+  try { connection.createStatement().execute("PRAGMA journal_mode = WAL") } catch { case _: Exception => }
 
   def getConnection: java.sql.Connection = connection
 
