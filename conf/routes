@@ -2,8 +2,9 @@
 # Tech Products Store API
 
 # Home
-# GET     /                                       controllers.HomeController.index()
 GET     /                  controllers.Assets.versioned(path="/public", file="index.html")
+GET     /venta                  controllers.Assets.versioned(path="/public", file="venta.html")
+GET     /edit	controllers.Assets.versioned(path="/public", file="edit.html")
 GET     /assets/*file      controllers.Assets.versioned(path="/public", file)
 
 # Health
@@ -26,6 +27,3 @@ GET     /api/v1/ventas                           controllers.VentaController.lis
 GET     /api/v1/ventas/:id                       controllers.VentaController.get(id: Long)
 POST    /api/v1/ventas                           controllers.VentaController.create()
 GET     /api/v1/ventas/productos-mas-vendidos    controllers.VentaController.bestSellers()
-
-# Static assets
-# GET     /assets/*file                           controllers.Assets.versioned(path="/public", file: Asset)

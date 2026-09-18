@@ -7,15 +7,24 @@ document.getElementById("fch").addEventListener("click", () => {
       data.innerHTML = productos
         .map(
           (x) => `
-        <div>
-          <h3>${x.nombre}</h3>
-          <p>${x.descripcion}</p>
-          <p>Precio: S/. ${x.precio}</p>
-          <p>Stock: ${x.stock}</p>
-          <p>Categoría: ${x.id_categoria}</p>
-        </div>
-        <hr>
-      `,
+	  <thead>
+	    <tr>
+	      <th scope="col">Nombre</th>
+	      <th scope="col">Descripción</th>
+	      <th scope="col">Precio</th>
+	      <th scope="col">Stock</th>
+	      <th scope="col">Categoria</th>
+	    </tr>
+	  </thead>
+	  <tbody>
+	    <tr>
+	      <td>${x.nombre}</td>
+	      <td>${x.descripcion}</td>
+	      <td>${x.precio}</td>
+	      <td>${x.stock}</td>
+	      <td>${x.id_categoria}</td>
+	    </tr>
+	  </tbody>`,
         )
         .join("");
     })
